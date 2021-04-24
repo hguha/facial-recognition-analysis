@@ -1,0 +1,68 @@
+DETECTING
+==============
+Testing 12 image(s) for method: Convolutional Neural Network
+Overall Time taken: 17.8017055
+group
+=========
+Time taken for group: 1.5306857919999999
+low-light
+=========
+Time taken for low-light: 1.5928613339999984
+obstructed
+=========
+Time taken for obstructed: 1.4493161250000028
+single
+=========
+Time taken for single: 1.6668790000000016
+angle
+=========
+Time taken for angle: 1.5168413749999985
+small
+=========
+Time taken for small: 1.4407442079999981
+
+
+Testing 12 image(s) for method: Histogram of Oriented Gradients
+Overall Time taken: 3.279699041999997
+group
+=========
+Time taken for group: 0.2769386669999996
+low-light
+=========
+Time taken for low-light: 0.25477295800000377
+obstructed
+=========
+Time taken for obstructed: 0.3008536669999984
+single
+=========
+Time taken for single: 0.2813662499999978
+angle
+=========
+Time taken for angle: 0.26459833400000576
+small
+=========
+Time taken for small: 0.30128900000000414
+
+
+Testing 12 image(s) for method: Cascade Classifer
+Overall Time taken: 0.8108579589999962
+group
+=========
+Time taken for group: 0.0693048330000039
+low-light
+=========
+Time taken for low-light: 0.032554083000000844
+obstructed
+=========
+Time taken for obstructed: 0.06581041700000156
+single
+=========
+Time taken for single: 0.0486079590000017
+angle
+=========
+Time taken for angle: 0.041293625000001555
+small
+=========
+Time taken for small: 0.07074691599999738
+
+
