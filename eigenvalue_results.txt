@@ -1,0 +1,37 @@
+PREDICTING
+==============
+Total dataset size:
+n_samples: 1288
+n_features: 1850
+n_classes: 7
+Extracting the top 150 eigenfaces from 966 faces
+done in 0.211s
+Projecting the input data on the eigenfaces orthonormal basis
+done in 0.017s
+Fitting the classifier to the training set
+done in 12.673s
+Best estimator found by grid search:
+SVC(C=1000.0, class_weight='balanced', gamma=0.005)
+Predicting people's names on the test set
+done in 0.037s
+                   precision    recall  f1-score   support
+
+     Ariel Sharon       0.71      0.38      0.50        13
+     Colin Powell       0.80      0.87      0.83        60
+  Donald Rumsfeld       0.89      0.63      0.74        27
+    George W Bush       0.83      0.98      0.90       146
+Gerhard Schroeder       0.95      0.76      0.84        25
+      Hugo Chavez       1.00      0.53      0.70        15
+       Tony Blair       0.97      0.81      0.88        36
+
+         accuracy                           0.85       322
+        macro avg       0.88      0.71      0.77       322
+     weighted avg       0.86      0.85      0.84       322
+
+[[  5   2   0   6   0   0   0]
+ [  1  52   1   6   0   0   0]
+ [  1   2  17   7   0   0   0]
+ [  0   3   0 143   0   0   0]
+ [  0   2   0   3  19   0   1]
+ [  0   3   0   3   1   8   0]
+ [  0   1   1   5   0   0  29]]
