@@ -1,11 +1,15 @@
-from os import listdir
-from os.path import isfile, join
+from os import listdir, walk
+from os.path import isfile, join, isdir
 
 images_folder = "images/"
-images = [images_folder+f for f in listdir(images_folder) if isfile(join(images_folder, f))]
+image_categories = [f for f in listdir(images_folder) if isdir(join(images_folder, f))]
+images = dict()
+for i in image_categories:
+    images[i] = [images_folder+i+"/"+f for f in listdir(images_folder+i+"/")]
 
 config = {
     "images": images,
+    "images_flat": [item for sublist in images.values() for item in sublist],
     "show_plot": False,
     "show_eigenvalues": False,
     "get_stats": True,
@@ -18,11 +22,11 @@ config = {
     },
 
     "methods": {
-        "Convolutional Neural Network": "CNN", 
-        "Histogram of Oriented Gradients": "HOG", 
+        # "Convolutional Neural Network": "CNN", 
+        # "Histogram of Oriented Gradients": "HOG", 
         "Cascade Classifer": "CASCADE"
     },
 
-    "image_types": ["group", "low-light", "obstructed", "single", "angle", "small"]
+    "image_types": image_categories
 
 }

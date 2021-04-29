@@ -59,13 +59,11 @@ def eigenvalue_breakdown(show=False):
 
     eigenfaces = pca.components_.reshape((n_components, h, w))
 
-    print("Projecting the input data on the eigenfaces orthonormal basis")
     t0 = time()
     X_train_pca = pca.transform(X_train)
     X_test_pca = pca.transform(X_test)
     print("done in %0.3fs" % (time() - t0))
 
-    print("Fitting the classifier to the training set")
     t0 = time()
     param_grid = {'C': [1e3, 5e3, 1e4, 5e4, 1e5],
                 'gamma': [0.0001, 0.0005, 0.001, 0.005, 0.01, 0.1], }
@@ -77,7 +75,6 @@ def eigenvalue_breakdown(show=False):
     print("Best estimator found by grid search:")
     print(clf.best_estimator_)
 
-    print("Predicting people's names on the test set")
     t0 = time()
     y_pred = clf.predict(X_test_pca)
     print("done in %0.3fs" % (time() - t0))
@@ -150,10 +147,10 @@ if config["get_stats"]:
     print("DETECTING\n==============")
 
     for name, method in config["methods"].items():    
-        print("Testing {} image(s) for method: {}".format(len(config["images"]), name))
+        print("Testing {} image(s) for method: {}".format(len(config["images_flat"]), name))
         start = perf_counter()
         
-        for i in config["images"]:
+        for i in config["images_flat"]:
             image = cv2.imread(i, 0)
             locals()[method](image, name, show=config["show_plot"])
         
@@ -163,9 +160,12 @@ if config["get_stats"]:
             start = perf_counter()
             
             print(i+"\n=========")
-            image = cv2.imread("images/"+i+".jpg", 0)
-            locals()[method](image, name)
-            print("Time taken for {}: {}".format(i, str(perf_counter() - start)))
+            for img in config["images"][i]:
+                image = cv2.imread(img, 0)
+                locals()[method](image, name)
+            
+            n = len(config["images"][i])
+            print("Average Time of {} images for {}: {}".format(n, i, str((perf_counter() - start)/n)))
         print("\n")
 
 
