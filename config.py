@@ -10,9 +10,12 @@ for i in image_categories:
 config = {
     "images": images,
     "images_flat": [item for sublist in images.values() for item in sublist],
+    "large_images_folder" : "images2/",
+    "large_image_bbox" : "images2/bbox.txt",
+    "large_image_set" : True,
     "show_plot": False,
     "show_eigenvalues": False,
-    "get_stats": True,
+    "get_stats": False,
     "cnn_model":"models/mmod_human_face_detector.dat",
 
     "haar_models": {

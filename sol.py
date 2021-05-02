@@ -5,6 +5,9 @@ from imutils import face_utils
 import numpy as np
 from time import perf_counter, time
 from config import config
+import csv
+from os.path import join
+import math
 
 from sklearn.model_selection import train_test_split
 from sklearn.model_selection import GridSearchCV
@@ -100,7 +103,9 @@ def show_plot(image, name):
 
 
 def CNN(image, name, model=config["cnn_model"], show=False):
-    dnnFaceDetector = dlib.cnn_face_detection_model_v1(model)
+    global dnnFaceDetector
+
+    bboxes = []
 
     rects = dnnFaceDetector(image, 1)
     for (i, rect) in enumerate(rects):
@@ -108,12 +113,17 @@ def CNN(image, name, model=config["cnn_model"], show=False):
         y1 = rect.rect.top()
         x2 = rect.rect.right()
         y2 = rect.rect.bottom()
-        cv2.rectangle(image, (x1, y1), (x2, y2), (255, 255, 255), 3)
+        bboxes.append((x1, y1, x2, y2))
+        if show: cv2.rectangle(image, (x1, y1), (x2, y2), (255, 255, 255), 3)
 
     if show: show_plot(image, name)
 
+    return bboxes
+
+
+
 def CASCADE(image, name, model=config["haar_models"]["face"], show=False):
-    cascade = cv2.CascadeClassifier(model)
+    global cascade
 
     faces = cascade.detectMultiScale(
         image,
@@ -121,13 +131,19 @@ def CASCADE(image, name, model=config["haar_models"]["face"], show=False):
         minNeighbors=5,
         flags=cv2.CASCADE_SCALE_IMAGE
     )
+
+    bboxes = []
         
     for (x, y, w, h) in faces: 
-        cv2.rectangle(image, (x, y), (x+w, y+h), (255, 255, 255), 3)
+        bboxes.append((x, y, x + w, y + h))
+        if show: cv2.rectangle(image, (x, y), (x+w, y+h), (255, 255, 255), 3)
 
     if show: show_plot(image, name)
 
+    return bboxes
+
 def HOG(image, name, show=False):
+    global face_detect
     im = np.float32(image) / 255.0
 
     #gradient
@@ -135,13 +151,142 @@ def HOG(image, name, show=False):
     gy = cv2.Sobel(im, cv2.CV_32F, 0, 1, ksize=1)
     mag, angle = cv2.cartToPolar(gx, gy, angleInDegrees=True)
 
-    face_detect = dlib.get_frontal_face_detector()
+    
     rects = face_detect(image, 1)
+    bboxes = []
     for rect in rects:
         (x, y, w, h) = face_utils.rect_to_bb(rect)
-        cv2.rectangle(image, (x, y), (x + w, y + h), (255, 255, 255), 3)
+        bboxes.append((x, y, x + w, y + h))
+        if show: cv2.rectangle(image, (x, y), (x + w, y + h), (255, 255, 255), 3)
         
     if show: show_plot(image, name)
+    return bboxes
+
+#euclidean distance
+def eucl_dist(x1, x2, y1, y2):
+    return math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
+
+#Find the closest box for each box in boxes1. We use the min of the distance between the upper left and lower right
+#corner, since the generated box is often smaller than the label, and it is close to one corner or the other
+def findClosest(boxes1, boxes2):
+    closestFound = {}
+    for box in boxes1:
+        (x1, y1, x2, y2) = box
+        closest = None
+        dist = 100000
+        for box2 in boxes2:
+            (x11, y11, x22, y22) = box2
+            euc1 = eucl_dist(x1, x11, y1, y11)
+            euc2 = eucl_dist(x2, x22, y2, y22)
+            if min(euc1, euc2) < dist:
+                closest = box2
+                dist = min(euc1, euc2)
+        closestFound[box] = (closest, dist)
+    return closestFound
+
+def add_tuple(x, y):
+    (a, b, c) = x
+    (d, e, f) = y
+    return (a + d, b + e, c + f)
+
+#The reference boxes and the found boxes - we want to determine which are correct, which are FP, and which are FN
+def evalBoxes(boxes1, boxes2):
+    #we will find the closest found box for each real box, then sort by distance (because there can be false positive and negatives)
+    #first, we find the closest real box for each found box
+    correctMatch = 0
+    falsePos = 0
+    falseNeg = 0
+
+    b1 = [i for i in boxes1]
+    b2 = [i for i in boxes2]
+    while len(b1) > 0 and len(b2) > 0:
+        close = findClosest(b1, b2)
+        (boxR, x) = min(close.items(), key= lambda x : x[1][1])
+        (boxF, dist) = x
+        if (dist < 50):
+            correctMatch += 1
+            print(boxF)
+            b1.remove(boxR)
+            b2.remove(boxF)
+        else:
+            break
+    #Now everything left in b1 is is a false negative, and everything left in b2 is a false positive
+    falsePos = len(b2)
+    falseNeg = len(b1)
+    print(correctMatch, falsePos, falseNeg)
+    return (correctMatch, falsePos, falseNeg)
+
+
+#Does automated analysis of the images, since the dataset is labelled. Currently, you have to
+#comment out the others and choose a model. We could make this nicer.
+if config["large_image_set"]:
+    bboxes = {}
+
+    with open(config["large_image_bbox"]) as txtfile:
+        while True:
+            filename = txtfile.readline().rstrip()
+            if not filename:
+                break
+            numFaces = int(txtfile.readline())
+            faces = []
+            for i in range(numFaces):
+                face = txtfile.readline().split()
+                majRad = int(float(face[0]))
+                minRad = int(float(face[1]))
+                cenX = int(float(face[3]))
+                cenY = int(float(face[4]))
+                x1 = cenX - minRad
+                y1 = cenY - majRad
+                x2 = cenX + minRad
+                y2 = cenY + majRad
+                faces.append((x1, y1, x2, y2))
+            bboxes[filename] = faces
+    print(bboxes)
+
+    #dnnFaceDetector = dlib.cnn_face_detection_model_v1(config["cnn_model"])
+    cascade = cv2.CascadeClassifier(config["haar_models"]["face"])
+    #face_detect = dlib.get_frontal_face_detector()
+
+    oneFace = (0, 0, 0)
+    twoFace = (0, 0, 0)
+    moreFace =(0, 0, 0)
+    numOneFace = 0
+    numTwoFace = 0
+    numMoreFace = 0
+    ctr = 0
+    start = perf_counter()
+    for filename in bboxes.keys():
+        print(ctr)
+        ctr += 1
+        print(join(config["large_images_folder"], filename) + ".jpg")
+        image = cv2.imread((join(config["large_images_folder"], filename) + ".jpg"), 0)
+        #bbox_found = CNN(image, "")
+        bbox_found= CASCADE(image, "")
+        #bbox_found = HOG(image, "")
+        faces = bboxes[filename]
+
+        result =  evalBoxes(faces, bbox_found)
+        (correct, falsePos, falseNeg) = result
+        numFaces = correct + falseNeg
+        if numFaces == 1:
+            numOneFace += 1
+            oneFace = add_tuple(oneFace, result)
+        elif numFaces == 2:
+            numTwoFace += 1
+            twoFace = add_tuple(twoFace, result)
+        elif numFaces > 0:
+            numMoreFace += 1
+            moreFace = add_tuple(moreFace, result)
+    print ("There were " + str(numOneFace) + " images with 1 face")
+    print(oneFace)
+    print ("There were " + str(numTwoFace) + " images with 2 faces")
+    print(twoFace)
+    print ("There were " + str(numMoreFace) + " images with > 2 faces")
+    print(moreFace)
+    print("TIME TAKEN:")
+    print(str(perf_counter() - start))
+
+
 
 if config["get_stats"]:
     print("DETECTING\n==============")
