@@ -1,0 +1,46 @@
+RESULTS FULL DATASET
+HOG
+
+There were 1700 images with 1 face
+(1637, 41, 63)
+There were 631 images with 2 faces
+(1010, 7, 252)
+There were 514 images with > 2 faces
+(1253, 3, 956)
+Overall accuracy:
+(3900, 51, 1271)
+On small images (< 150 px): found 1605 missed 999
+On large images (> 300 px): found 450 missed 63
+TIME TAKEN:
+186.07994415899884
+
+
+CASCADE
+
+There were 1700 images with 1 face
+(1555, 285, 145)
+There were 631 images with 2 faces
+(946, 115, 316)
+There were 514 images with > 2 faces
+(1224, 88, 985)
+Overall accuracy:
+(3725, 488, 1446)
+On small images (< 150 px): found 1569 missed 1035
+On large images (> 300 px): found 397 missed 116
+TIME TAKEN:
+106.7586290599993
+
+CNN
+
+There were 1700 images with 1 face
+(1553, 165, 147)
+There were 631 images with 2 faces
+(1130, 38, 132)
+There were 514 images with > 2 faces
+(1531, 11, 678)
+Overall accuracy:
+(4214, 214, 957)
+On small images (< 150 px): found 1878 missed 726
+On large images (> 300 px): found 344 missed 169
+TIME TAKEN:
+13673.496917332

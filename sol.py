@@ -102,7 +102,7 @@ def show_plot(image, name):
     plt.close('all')
 
 
-def CNN(image, name, model=config["cnn_model"], show=False):
+def CNN(image, name, model=config["cnn_model"], show=config["show_plot"]):
     global dnnFaceDetector
 
     bboxes = []
@@ -122,7 +122,7 @@ def CNN(image, name, model=config["cnn_model"], show=False):
 
 
 
-def CASCADE(image, name, model=config["haar_models"]["face"], show=False):
+def CASCADE(image, name, model=config["haar_models"]["face"], show=config["show_plot"]):
     global cascade
 
     faces = cascade.detectMultiScale(
@@ -142,7 +142,7 @@ def CASCADE(image, name, model=config["haar_models"]["face"], show=False):
 
     return bboxes
 
-def HOG(image, name, show=False):
+def HOG(image, name, show=config["show_plot"]):
     global face_detect
     im = np.float32(image) / 255.0
 
@@ -197,6 +197,12 @@ def evalBoxes(boxes1, boxes2):
     falsePos = 0
     falseNeg = 0
 
+    foundSmall = 0
+    missedSmall = 0
+
+    foundLarge = 0
+    missedLarge = 0
+
     b1 = [i for i in boxes1]
     b2 = [i for i in boxes2]
     while len(b1) > 0 and len(b2) > 0:
@@ -204,6 +210,14 @@ def evalBoxes(boxes1, boxes2):
         (boxR, x) = min(close.items(), key= lambda x : x[1][1])
         (boxF, dist) = x
         if (dist < 50):
+            #found match
+            #first, check size
+            (x1, y1, x2, y2) = boxR
+            diag = eucl_dist(x1, x2, y1, y2)
+            if(diag < 150):
+                foundSmall += 1
+            elif (diag > 300):
+                foundLarge += 1
             correctMatch += 1
             print(boxF)
             b1.remove(boxR)
@@ -213,8 +227,11 @@ def evalBoxes(boxes1, boxes2):
     #Now everything left in b1 is is a false negative, and everything left in b2 is a false positive
     falsePos = len(b2)
     falseNeg = len(b1)
+    missedSmall = len([(x1, y1, x2, y2) for (x1, y1, x2, y2) in b1 if (eucl_dist(x1, x2, y1, y2) < 150) ])
+    missedLarge = len([(x1, y1, x2, y2) for (x1, y1, x2, y2) in b1  if (eucl_dist(x1, x2, y1, y2) > 300)])
     print(correctMatch, falsePos, falseNeg)
-    return (correctMatch, falsePos, falseNeg)
+    print(foundSmall, missedSmall, foundLarge, missedLarge)
+    return ((correctMatch, falsePos, falseNeg), (foundSmall, missedSmall, foundLarge, missedLarge))
 
 
 #Does automated analysis of the images, since the dataset is labelled. Currently, you have to
@@ -253,6 +270,14 @@ if config["large_image_set"]:
     numOneFace = 0
     numTwoFace = 0
     numMoreFace = 0
+
+    totStats = (0, 0, 0)
+
+    numMissedSmall = 0
+    numMissedLarge = 0
+    numFoundSmall = 0
+    numFoundLarge = 0
+
     ctr = 0
     start = perf_counter()
     for filename in bboxes.keys():
@@ -260,29 +285,48 @@ if config["large_image_set"]:
         ctr += 1
         print(join(config["large_images_folder"], filename) + ".jpg")
         image = cv2.imread((join(config["large_images_folder"], filename) + ".jpg"), 0)
+        faces = bboxes[filename]
+        # #TODO: for displaying images
+        # for box in faces:
+        #     (x1, y1, x2, y2) = box
+        #     cv2.rectangle(image, (x1, y1), (x2, y2), (0, 0, 0), 3)
+
+        #bbox_found = HOG(image, "")
         #bbox_found = CNN(image, "")
         bbox_found= CASCADE(image, "")
-        #bbox_found = HOG(image, "")
-        faces = bboxes[filename]
 
-        result =  evalBoxes(faces, bbox_found)
-        (correct, falsePos, falseNeg) = result
+        (numResult, sizeResults) =  evalBoxes(faces, bbox_found)
+        (correct, falsePos, falseNeg) = numResult
         numFaces = correct + falseNeg
+        if numFaces == 0:
+            raise TypeError
         if numFaces == 1:
             numOneFace += 1
-            oneFace = add_tuple(oneFace, result)
+            oneFace = add_tuple(oneFace, numResult)
         elif numFaces == 2:
             numTwoFace += 1
-            twoFace = add_tuple(twoFace, result)
+            twoFace = add_tuple(twoFace, numResult)
         elif numFaces > 0:
             numMoreFace += 1
-            moreFace = add_tuple(moreFace, result)
+            moreFace = add_tuple(moreFace, numResult)
+
+        (foundSmall, missedSmall, foundLarge, missedLarge) = sizeResults
+        numMissedLarge += missedLarge
+        numMissedSmall += missedSmall
+        numFoundLarge += foundLarge
+        numFoundSmall += foundSmall
+        totStats = add_tuple(totStats, numResult)
+        #show_plot(image, "")
     print ("There were " + str(numOneFace) + " images with 1 face")
     print(oneFace)
     print ("There were " + str(numTwoFace) + " images with 2 faces")
     print(twoFace)
     print ("There were " + str(numMoreFace) + " images with > 2 faces")
     print(moreFace)
+    print("Overall accuracy:")
+    print(totStats)
+    print("On small images (< 150 px): found " + str(numFoundSmall) + " missed " + str(numMissedSmall))
+    print("On large images (> 300 px): found " + str(numFoundLarge) + " missed " + str(numMissedLarge))
     print("TIME TAKEN:")
     print(str(perf_counter() - start))
 
