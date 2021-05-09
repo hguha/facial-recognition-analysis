@@ -25,8 +25,8 @@ config = {
     },
 
     "methods": {
-        # "Convolutional Neural Network": "CNN", 
-        # "Histogram of Oriented Gradients": "HOG", 
+        "Convolutional Neural Network": "CNN", 
+        "Histogram of Oriented Gradients": "HOG", 
         "Cascade Classifer": "CASCADE"
     },
 
